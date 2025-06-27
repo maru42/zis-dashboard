@@ -83,7 +83,7 @@ nest-asyncio==1.6.0
 networkx==3.4.2
 notebook==7.2.2
 notebook_shim==0.2.4
-numpy==2.0.2 --only-binary :all:
+numpy==1.26.4
 opencv-python==4.11.0.86
 openpyxl==3.1.5
 opt_einsum==3.4.0
