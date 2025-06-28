@@ -94,7 +94,7 @@ if 'model' not in st.session_state:
 
 # --- SIDEBAR FOR UPLOAD ---
 with st.sidebar:
-    st.title("⚙️ Upload Data Anda")
+    st.title("Upload Data Anda")
     uploaded_file = st.file_uploader("📤 Upload file Excel Rekapitulasi ZIS", type=["xlsx"])
     
     if uploaded_file:
