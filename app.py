@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
+from datetime import datetime
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
@@ -58,26 +59,6 @@ body {
     color: #6c757d;
 }
 
-/* To-Do List Styling */
-.todo-item {
-    display: flex;
-    align-items: center;
-    padding: 12px;
-    background-color: #f8f9fa;
-    border-radius: 10px;
-    margin-bottom: 10px;
-    border: 1px solid #dee2e6;
-}
-.todo-item .icon {
-    font-size: 1.5rem;
-    margin-right: 15px;
-    color: #0068c9;
-}
-.todo-item .text {
-    color: #495057;
-}
-
-
 /* Header styling */
 h1, h2, h3, h4 { color: #1E293B; }
 
@@ -124,105 +105,108 @@ with st.sidebar:
             st.success("File berhasil diunggah!")
 
 # --- HOMEPAGE CONTENT ---
-st.title("Selamat Datang di Dashboard Analisis ZIS")
-st.markdown("Berikut ringkasan data awal dari file yang Anda unggah.")
+st.title("Dashboard Overview ZIS")
+st.markdown("Ringkasan data penerimaan Zakat, Infaq, dan Shadaqah.")
 st.markdown("---")
 
 if st.session_state.df is not None:
-    main_col1, main_col2 = st.columns([2.5, 1])
+    df_display = st.session_state.df.copy()
+    
+    # Mencari kolom tanggal yang mungkin (misal: 'tanggal', 'waktu', 'date')
+    date_col_name = None
+    possible_date_cols = ['tanggal', 'tgl', 'date', 'waktu_transaksi', 'waktu']
+    for col in df_display.columns:
+        if col.lower() in possible_date_cols:
+            date_col_name = col
+            break
 
-    with main_col1:
-        # --- METRICS ROW ---
-        df_display = st.session_state.df.copy()
-        zakat_beras_col = "Jumlah Beras (Kg)"
+    if date_col_name:
+        df_display['date'] = pd.to_datetime(df_display[date_col_name], errors='coerce')
+        df_display['year'] = df_display['date'].dt.year
+        df_display['month'] = df_display['date'].dt.month
         
-        # Calculate metrics
-        total_zakat_beras = 0
-        if zakat_beras_col in df_display.columns:
-            numeric_beras = pd.to_numeric(df_display[zakat_beras_col], errors='coerce')
-            total_zakat_beras = numeric_beras.sum()
-
-        numeric_cols = df_display.select_dtypes(include=np.number)
-        if zakat_beras_col in numeric_cols.columns:
-            numeric_cols_money = numeric_cols.drop(columns=[zakat_beras_col])
-        else:
-            numeric_cols_money = numeric_cols
-        total_donasi_uang = numeric_cols_money.sum().sum()
+        # --- Filter Tahun ---
+        years = sorted(df_display['year'].dropna().unique().astype(int), reverse=True)
+        selected_year = st.selectbox("Pilih Tahun:", years)
         
-        jumlah_transaksi = len(df_display)
-
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown(f"""
-            <div class="card metric-card">
-                <span class="icon">💰</span>
-                <h3>Total Donasi Uang</h3>
-                <p>Rp {total_donasi_uang:,.0f}</p>
-            </div>""", unsafe_allow_html=True)
-        with col2:
-            st.markdown(f"""
-            <div class="card metric-card">
-                <span class="icon">🌾</span>
-                <h3>Total Zakat Beras</h3>
-                <p>{total_zakat_beras:,.1f} Kg</p>
-            </div>""", unsafe_allow_html=True)
-        with col3:
-            st.markdown(f"""
-            <div class="card metric-card">
-                <span class="icon">🔄</span>
-                <h3>Jumlah Transaksi</h3>
-                <p>{jumlah_transaksi}</p>
-            </div>""", unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # --- LINE CHART ---
-        st.markdown("<h4>Grafik Donasi Harian (Contoh)</h4>", unsafe_allow_html=True)
-        with st.container():
-            # Membuat data dummy untuk visualisasi
-            chart_data = pd.DataFrame({
-                "Tanggal": pd.to_datetime(pd.date_range("2024-06-01", periods=14, freq="D")),
-                "Donasi (Rp)": np.random.randint(1000000, 5000000, size=14)
-            })
-            
-            fig = px.line(chart_data, x='Tanggal', y='Donasi (Rp)', markers=True,
-                          title="Tren Penerimaan Donasi 14 Hari Terakhir")
-            fig.update_layout(
-                plot_bgcolor='white',
-                paper_bgcolor='white',
-                font_color='#1E293B',
-                xaxis_gridcolor='#e0e0e0',
-                yaxis_gridcolor='#e0e0e0'
-            )
-            st.plotly_chart(fig, use_container_width=True)
+        # Filter dataframe berdasarkan tahun yang dipilih
+        filtered_df = df_display[df_display['year'] == selected_year]
+        
+    else:
+        # Jika tidak ada kolom tanggal, gunakan seluruh data
+        st.warning("Kolom tanggal tidak ditemukan. Menampilkan data keseluruhan.")
+        filtered_df = df_display
+        selected_year = "Keseluruhan"
 
 
-    with main_col2:
-        # --- TO-DO LIST ---
-        st.markdown("<h4>Langkah Analisis Anda</h4>", unsafe_allow_html=True)
-        st.markdown("""
-        <div class="card">
-            <div class="todo-item">
-                <span class="icon">1️⃣</span>
-                <span class="text">Lakukan Preprocessing untuk membersihkan data.</span>
-            </div>
-            <div class="todo-item">
-                <span class="icon">2️⃣</span>
-                <span class="text">Buat model clustering di halaman Modelling.</span>
-            </div>
-            <div class="todo-item">
-                <span class="icon">3️⃣</span>
-                <span class="text">Lihat hasil dan insight dari cluster yang terbentuk.</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+    # --- METRICS ROW ---
+    st.subheader(f"Ringkasan Tahun {selected_year}")
+    zakat_beras_col = "Jumlah Beras (Kg)"
+    
+    # Calculate metrics based on filtered data
+    total_zakat_beras = 0
+    if zakat_beras_col in filtered_df.columns:
+        numeric_beras = pd.to_numeric(filtered_df[zakat_beras_col], errors='coerce')
+        total_zakat_beras = numeric_beras.sum()
 
-        st.markdown("<br>", unsafe_allow_html=True)
+    numeric_cols = filtered_df.select_dtypes(include=np.number)
+    if zakat_beras_col in numeric_cols.columns:
+        numeric_cols_money = numeric_cols.drop(columns=[zakat_beras_col])
+    else:
+        numeric_cols_money = numeric_cols
+        
+    # Hapus kolom 'year' dan 'month' dari perhitungan donasi
+    if 'year' in numeric_cols_money.columns:
+        numeric_cols_money = numeric_cols_money.drop(columns=['year'])
+    if 'month' in numeric_cols_money.columns:
+        numeric_cols_money = numeric_cols_money.drop(columns=['month'])
 
-        # --- DATA PREVIEW ---
-        st.markdown("<h4>Pratinjau Data</h4>", unsafe_allow_html=True)
-        with st.container():
-            st.dataframe(st.session_state.df.head(5), use_container_width=True)
+    total_donasi_uang = numeric_cols_money.sum().sum()
+    jumlah_transaksi = len(filtered_df)
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown(f"""
+        <div class="card metric-card">
+            <span class="icon">💰</span><h3>Total Donasi Uang</h3><p>Rp {total_donasi_uang:,.0f}</p>
+        </div>""", unsafe_allow_html=True)
+    with col2:
+        st.markdown(f"""
+        <div class="card metric-card">
+            <span class="icon">🌾</span><h3>Total Zakat Beras</h3><p>{total_zakat_beras:,.1f} Kg</p>
+        </div>""", unsafe_allow_html=True)
+    with col3:
+        st.markdown(f"""
+        <div class="card metric-card">
+            <span class="icon">🔄</span><h3>Jumlah Transaksi</h3><p>{jumlah_transaksi}</p>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # --- GRAFIK ROW ---
+    if date_col_name:
+        st.subheader("Grafik Penerimaan Bulanan")
+        graph_col1, graph_col2 = st.columns(2)
+
+        with graph_col1:
+            # Grafik Donasi Uang
+            money_by_month = numeric_cols_money.groupby(filtered_df['month']).sum().sum(axis=1).reset_index(name='total_uang')
+            fig_money = px.line(money_by_month, x='month', y='total_uang', markers=True,
+                                title=f"Tren Donasi Uang Tahun {selected_year}")
+            fig_money.update_layout(xaxis_title="Bulan", yaxis_title="Total Donasi (Rp)")
+            st.plotly_chart(fig_money, use_container_width=True)
+        
+        with graph_col2:
+            # Grafik Donasi Beras
+            rice_by_month = filtered_df.groupby('month')[zakat_beras_col].sum().reset_index()
+            fig_rice = px.line(rice_by_month, x='month', y=zakat_beras_col, markers=True,
+                               title=f"Tren Zakat Beras Tahun {selected_year}", color_discrete_sequence=['green'])
+            fig_rice.update_layout(xaxis_title="Bulan", yaxis_title="Jumlah Beras (Kg)")
+            st.plotly_chart(fig_rice, use_container_width=True)
+
+    st.markdown("---")
+    st.subheader("Pratinjau Data")
+    st.dataframe(filtered_df.head())
 
 else:
     st.info("Silakan unggah file Excel di sidebar untuk memulai analisis.")
