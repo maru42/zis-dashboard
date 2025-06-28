@@ -6,17 +6,16 @@ import plotly.express as px
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="Dashboard ZIS | Overview",
-    page_icon="🌙",
+    page_icon="📊",
     layout="wide"
 )
 
-# --- CUSTOM CSS FOR DARK MODE ---
+# --- CUSTOM CSS FOR LIGHT MODE ---
 st.markdown("""
 <style>
 /* General Body Styles */
 body {
-    background-color: #1a1a1a; /* Dark background */
-    color: #e0e0e0;
+    background-color: #f0f2f6; /* Light grey background */
 }
 
 /* Main container styling */
@@ -28,36 +27,35 @@ body {
 }
 
 /* Card Styling */
-.dark-card {
-    background-color: #2b2b2b; /* Slightly lighter dark */
-    border-radius: 16px;
+.card {
+    background-color: white;
+    border-radius: 12px;
     padding: 25px;
-    border: 1px solid #444;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
     transition: all 0.3s ease-in-out;
     height: 100%;
 }
-.dark-card:hover {
-    border-color: #00aaff;
-    box-shadow: 0 0 15px rgba(0, 170, 255, 0.2);
+.card:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
 /* Metric Card Styling */
 .metric-card h3 {
     font-size: 1.1rem;
-    color: #a0a0a0; /* Muted text color */
+    color: #6c757d;
     margin-bottom: 8px;
     font-weight: 400;
 }
 .metric-card p {
     font-size: 2.2rem;
     font-weight: 600;
-    color: #ffffff;
+    color: #1E293B;
     margin-bottom: 8px;
 }
 .metric-card .icon {
     font-size: 1.5rem;
     float: right;
-    color: #a0a0a0;
+    color: #6c757d;
 }
 
 /* To-Do List Styling */
@@ -65,39 +63,35 @@ body {
     display: flex;
     align-items: center;
     padding: 12px;
-    background-color: #333333;
+    background-color: #f8f9fa;
     border-radius: 10px;
     margin-bottom: 10px;
+    border: 1px solid #dee2e6;
 }
 .todo-item .icon {
     font-size: 1.5rem;
     margin-right: 15px;
-    color: #00aaff;
+    color: #0068c9;
 }
 .todo-item .text {
-    color: #e0e0e0;
+    color: #495057;
 }
 
 
 /* Header styling */
-h1, h2, h3, h4 { color: #ffffff; }
+h1, h2, h3, h4 { color: #1E293B; }
 
-/* Sidebar styling */
-[data-testid="stSidebar"] {
-    background-color: #2b2b2b;
-    border-right: 1px solid #444;
-}
-
-/* Button in Sidebar */
+/* Button styling */
 div.stButton > button {
-    background-color: #00aaff;
-    color: #ffffff;
-    border: none;
+    background-color: #0068c9;
+    color: white;
     border-radius: 8px;
     padding: 10px 20px;
+    border: none;
+    font-weight: 500;
 }
 div.stButton > button:hover {
-    background-color: #0088cc;
+    background-color: #0055a8;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -116,7 +110,7 @@ if 'model' not in st.session_state:
 
 # --- SIDEBAR FOR UPLOAD ---
 with st.sidebar:
-    st.image("https://www.annabawi.org/wp-content/uploads/2022/12/cropped-Logo-web-Lazis-An-Nabawi-300x125.png", width=200) # Assuming the logo has a transparent background
+    st.image("https://www.annabawi.org/wp-content/uploads/2022/12/cropped-Logo-web-Lazis-An-Nabawi-300x125.png", width=200)
     st.title("⚙️ Upload Data Anda")
     uploaded_file = st.file_uploader("📤 Upload file Excel Rekapitulasi ZIS", type=["xlsx"])
     
@@ -131,7 +125,7 @@ with st.sidebar:
 
 # --- HOMEPAGE CONTENT ---
 st.title("Selamat Datang di Dashboard Analisis ZIS")
-st.markdown("<h3 style='color: #a0a0a0;'>Berikut ringkasan data awal Anda.</h3>", unsafe_allow_html=True)
+st.markdown("Berikut ringkasan data awal dari file yang Anda unggah.")
 st.markdown("---")
 
 if st.session_state.df is not None:
@@ -160,21 +154,21 @@ if st.session_state.df is not None:
         col1, col2, col3 = st.columns(3)
         with col1:
             st.markdown(f"""
-            <div class="dark-card metric-card">
+            <div class="card metric-card">
                 <span class="icon">💰</span>
                 <h3>Total Donasi Uang</h3>
                 <p>Rp {total_donasi_uang:,.0f}</p>
             </div>""", unsafe_allow_html=True)
         with col2:
             st.markdown(f"""
-            <div class="dark-card metric-card">
+            <div class="card metric-card">
                 <span class="icon">🌾</span>
                 <h3>Total Zakat Beras</h3>
                 <p>{total_zakat_beras:,.1f} Kg</p>
             </div>""", unsafe_allow_html=True)
         with col3:
             st.markdown(f"""
-            <div class="dark-card metric-card">
+            <div class="card metric-card">
                 <span class="icon">🔄</span>
                 <h3>Jumlah Transaksi</h3>
                 <p>{jumlah_transaksi}</p>
@@ -182,9 +176,9 @@ if st.session_state.df is not None:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # --- DITAMBAHKAN: GRAFIK GARIS ---
+        # --- LINE CHART ---
         st.markdown("<h4>Grafik Donasi Harian (Contoh)</h4>", unsafe_allow_html=True)
-        with st.container(border=False):
+        with st.container():
             # Membuat data dummy untuk visualisasi
             chart_data = pd.DataFrame({
                 "Tanggal": pd.to_datetime(pd.date_range("2024-06-01", periods=14, freq="D")),
@@ -194,11 +188,11 @@ if st.session_state.df is not None:
             fig = px.line(chart_data, x='Tanggal', y='Donasi (Rp)', markers=True,
                           title="Tren Penerimaan Donasi 14 Hari Terakhir")
             fig.update_layout(
-                plot_bgcolor='#2b2b2b',
-                paper_bgcolor='#2b2b2b',
-                font_color='#e0e0e0',
-                xaxis_gridcolor='#444',
-                yaxis_gridcolor='#444'
+                plot_bgcolor='white',
+                paper_bgcolor='white',
+                font_color='#1E293B',
+                xaxis_gridcolor='#e0e0e0',
+                yaxis_gridcolor='#e0e0e0'
             )
             st.plotly_chart(fig, use_container_width=True)
 
@@ -207,7 +201,7 @@ if st.session_state.df is not None:
         # --- TO-DO LIST ---
         st.markdown("<h4>Langkah Analisis Anda</h4>", unsafe_allow_html=True)
         st.markdown("""
-        <div class="dark-card">
+        <div class="card">
             <div class="todo-item">
                 <span class="icon">1️⃣</span>
                 <span class="text">Lakukan Preprocessing untuk membersihkan data.</span>
@@ -227,7 +221,7 @@ if st.session_state.df is not None:
 
         # --- DATA PREVIEW ---
         st.markdown("<h4>Pratinjau Data</h4>", unsafe_allow_html=True)
-        with st.container(border=False):
+        with st.container():
             st.dataframe(st.session_state.df.head(5), use_container_width=True)
 
 else:
