@@ -1,6 +1,6 @@
 pip==25.1.1
-Streamlit: 1.46.1
-Pandas: 2.2.3
-Numpy: 2.0.2
-Scikit-learn: 1.5.2
-Plotly: 6.2.0
+Streamlit== 1.46.1
+Pandas== 2.2.3
+Numpy== 2.0.2
+Scikit-learn== 1.5.2
+Plotly= 6.2.0
