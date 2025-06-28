@@ -1,8 +1,3 @@
-# ==============================================================================
-# File: Overview.py (File Utama)
-# PENTING: Simpan kode ini sebagai 'Overview.py' untuk mengubah nama navigasi.
-# Untuk menjalankan, gunakan: streamlit run Overview.py
-# ==============================================================================
 import streamlit as st
 import pandas as pd
 import numpy as np
