@@ -1,7 +1,3 @@
-# ==============================================================================
-# File: pages/1_Preprocessing.py
-# Simpan kode ini sebagai 1_Preprocessing.py di dalam folder 'pages'.
-# ==============================================================================
 import streamlit as st
 import pandas as pd
 import numpy as np
