@@ -94,7 +94,6 @@ if 'model' not in st.session_state:
 
 # --- SIDEBAR FOR UPLOAD ---
 with st.sidebar:
-    st.image("https://www.annabawi.org/wp-content/uploads/2022/12/cropped-Logo-web-Lazis-An-Nabawi-300x125.png", width=200)
     st.title("⚙️ Upload Data Anda")
     uploaded_file = st.file_uploader("📤 Upload file Excel Rekapitulasi ZIS", type=["xlsx"])
     
