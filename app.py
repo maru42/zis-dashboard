@@ -1,20 +1,22 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import plotly.express as px
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="Dashboard ZIS | Overview",
-    page_icon="📊",
+    page_icon="🌙",
     layout="wide"
 )
 
-# --- CUSTOM CSS ---
+# --- CUSTOM CSS FOR DARK MODE ---
 st.markdown("""
 <style>
 /* General Body Styles */
 body {
-    background-color: #f0f2f6;
+    background-color: #1a1a1a; /* Dark background */
+    color: #e0e0e0;
 }
 
 /* Main container styling */
@@ -26,43 +28,82 @@ body {
 }
 
 /* Card Styling */
-.card {
-    background-color: white;
-    border-radius: 12px;
+.dark-card {
+    background-color: #2b2b2b; /* Slightly lighter dark */
+    border-radius: 16px;
     padding: 25px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid #444;
     transition: all 0.3s ease-in-out;
     height: 100%;
 }
-.card:hover {
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+.dark-card:hover {
+    border-color: #00aaff;
+    box-shadow: 0 0 15px rgba(0, 170, 255, 0.2);
 }
 
 /* Metric Card Styling */
-.metric-card { text-align: center; }
-.metric-card h3 { font-size: 1.2rem; color: #6c757d; margin-bottom: 0.5rem; }
-.metric-card p { font-size: 2.5rem; font-weight: 600; color: #1E293B; margin-bottom: 0.5rem; }
-.metric-card span { font-size: 1rem; color: #28a745; }
-.metric-card span.red { color: #dc3545; }
-
-/* Button Styling */
-div.stButton > button {
-    background-color: #0068c9;
-    color: white;
-    border-radius: 8px;
-    padding: 10px 20px;
-    border: none;
-    font-weight: 500;
-    width: 100%;
+.metric-card h3 {
+    font-size: 1.1rem;
+    color: #a0a0a0; /* Muted text color */
+    margin-bottom: 8px;
+    font-weight: 400;
 }
-div.stButton > button:hover { background-color: #0055a8; }
+.metric-card p {
+    font-size: 2.2rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 8px;
+}
+.metric-card .icon {
+    font-size: 1.5rem;
+    float: right;
+    color: #a0a0a0;
+}
+
+/* To-Do List Styling */
+.todo-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background-color: #333333;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+.todo-item .icon {
+    font-size: 1.5rem;
+    margin-right: 15px;
+    color: #00aaff;
+}
+.todo-item .text {
+    color: #e0e0e0;
+}
+
 
 /* Header styling */
-h1, h2, h3, h4 { color: #1E293B; }
+h1, h2, h3, h4 { color: #ffffff; }
+
+/* Sidebar styling */
+[data-testid="stSidebar"] {
+    background-color: #2b2b2b;
+    border-right: 1px solid #444;
+}
+
+/* Button in Sidebar */
+div.stButton > button {
+    background-color: #00aaff;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+}
+div.stButton > button:hover {
+    background-color: #0088cc;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # --- INITIALIZE SESSION STATE ---
+# ... (session state initialization remains the same) ...
 if 'df' not in st.session_state:
     st.session_state.df = None
 if 'df_processed' not in st.session_state:
@@ -76,6 +117,7 @@ if 'model' not in st.session_state:
 
 # --- SIDEBAR FOR UPLOAD ---
 with st.sidebar:
+    st.image("https://www.annabawi.org/wp-content/uploads/2022/12/cropped-Logo-web-Lazis-An-Nabawi-300x125.png", width=200) # Assuming the logo has a transparent background
     st.title("⚙️ Upload Data Anda")
     uploaded_file = st.file_uploader("📤 Upload file Excel Rekapitulasi ZIS", type=["xlsx"])
     
@@ -86,64 +128,85 @@ with st.sidebar:
             st.session_state.scaled_data = None
             st.session_state.result_df = None
             st.session_state.model = None
-            st.success("File berhasil diunggah! Silakan mulai analisis dari halaman Preprocessing.")
+            st.success("File berhasil diunggah!")
 
 # --- HOMEPAGE CONTENT ---
-st.title("📊 Overview Dashboard ZIS")
-st.markdown("Selamat datang! Halaman ini menampilkan ringkasan data awal dari file yang Anda unggah.")
+st.title("Selamat Datang di Dashboard Analisis ZIS")
+st.markdown("<h3 style='color: #a0a0a0;'>Berikut ringkasan data awal Anda.</h3>", unsafe_allow_html=True)
+st.markdown("---")
 
 if st.session_state.df is not None:
-    
-    st.markdown("### Ringkasan Data ZIS")
-    
-    df_display = st.session_state.df.copy()
-    
-    # --- Calculate Metrics ---
-    zakat_beras_col = "Jumlah Beras (Kg)"
-    
-    # 1. Calculate total rice zakat
-    total_zakat_beras = 0
-    if zakat_beras_col in df_display.columns:
-        numeric_beras = pd.to_numeric(df_display[zakat_beras_col], errors='coerce')
-        total_zakat_beras = numeric_beras.sum()
+    main_col1, main_col2 = st.columns([2, 1])
 
-    # 2. Calculate total money donation (excluding rice column)
-    numeric_cols = df_display.select_dtypes(include=np.number)
-    if zakat_beras_col in numeric_cols.columns:
-        numeric_cols_money = numeric_cols.drop(columns=[zakat_beras_col])
-    else:
-        numeric_cols_money = numeric_cols
-    total_donasi_uang = numeric_cols_money.sum().sum()
+    with main_col1:
+        # --- METRICS ROW ---
+        df_display = st.session_state.df.copy()
+        zakat_beras_col = "Jumlah Beras (Kg)"
+        
+        # Calculate metrics
+        total_zakat_beras = 0
+        if zakat_beras_col in df_display.columns:
+            numeric_beras = pd.to_numeric(df_display[zakat_beras_col], errors='coerce')
+            total_zakat_beras = numeric_beras.sum()
 
-    # 3. Other metrics
-    jumlah_transaksi = len(df_display)
-    rata_donasi = numeric_cols_money.sum(axis=1).mean() if not numeric_cols_money.empty else 0
-    
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.markdown(f"""
-        <div class="card metric-card">
-            <h3>Total Donasi Uang</h3><p>Rp {total_donasi_uang:,.0f}</p><span>Terkumpul</span>
-        </div>""", unsafe_allow_html=True)
-    with col2:
-        st.markdown(f"""
-        <div class="card metric-card">
-            <h3>Jumlah Transaksi</h3><p>{jumlah_transaksi}</p><span>Tercatat</span>
-        </div>""", unsafe_allow_html=True)
-    with col3:
-        st.markdown(f"""
-        <div class="card metric-card">
-            <h3>Total Zakat Beras</h3><p>{total_zakat_beras:,.1f}</p><span>Kg</span>
-        </div>""", unsafe_allow_html=True)
-    with col4:
-         st.markdown(f"""
-        <div class="card metric-card">
-            <h3>Rata-Rata Donasi Uang</h3><p>Rp {rata_donasi:,.0f}</p><span>per Transaksi</span>
-        </div>""", unsafe_allow_html=True)
+        numeric_cols = df_display.select_dtypes(include=np.number)
+        if zakat_beras_col in numeric_cols.columns:
+            numeric_cols_money = numeric_cols.drop(columns=[zakat_beras_col])
+        else:
+            numeric_cols_money = numeric_cols
+        total_donasi_uang = numeric_cols_money.sum().sum()
+        
+        jumlah_transaksi = len(df_display)
 
-    st.markdown("---")
-    st.subheader("Pratinjau Data Awal")
-    st.dataframe(st.session_state.df.head())
-    
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown(f"""
+            <div class="dark-card metric-card">
+                <span class="icon">💰</span>
+                <h3>Total Donasi Uang</h3>
+                <p>Rp {total_donasi_uang:,.0f}</p>
+            </div>""", unsafe_allow_html=True)
+        with col2:
+            st.markdown(f"""
+            <div class="dark-card metric-card">
+                <span class="icon">🌾</span>
+                <h3>Total Zakat Beras</h3>
+                <p>{total_zakat_beras:,.1f} Kg</p>
+            </div>""", unsafe_allow_html=True)
+        with col3:
+            st.markdown(f"""
+            <div class="dark-card metric-card">
+                <span class="icon">🔄</span>
+                <h3>Jumlah Transaksi</h3>
+                <p>{jumlah_transaksi}</p>
+            </div>""", unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # --- DATA PREVIEW ---
+        st.markdown("<h4>Pratinjau Data Mentah</h4>", unsafe_allow_html=True)
+        with st.container():
+            st.dataframe(st.session_state.df.head(), use_container_width=True)
+
+    with main_col2:
+        # --- TO-DO LIST ---
+        st.markdown("<h4>Langkah Analisis Anda</h4>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="dark-card">
+            <div class="todo-item">
+                <span class="icon">1️⃣</span>
+                <span class="text">Lakukan Preprocessing untuk membersihkan data.</span>
+            </div>
+            <div class="todo-item">
+                <span class="icon">2️⃣</span>
+                <span class="text">Buat model clustering di halaman Modelling.</span>
+            </div>
+            <div class="todo-item">
+                <span class="icon">3️⃣</span>
+                <span class="text">Lihat hasil dan insight dari cluster yang terbentuk.</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
 else:
     st.info("Silakan unggah file Excel di sidebar untuk memulai analisis.")
