@@ -9,7 +9,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- CUSTOM CSS (Diterapkan ke semua halaman) ---
+# --- CUSTOM CSS ---
 st.markdown("""
 <style>
 /* General Body Styles */
