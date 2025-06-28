@@ -130,17 +130,25 @@ if st.session_state.df is not None:
         df_display['year'] = df_display['date'].dt.year
         
         years = sorted(df_display['year'].dropna().unique().astype(int), reverse=True)
-        selected_year = st.selectbox("Pilih Tahun:", years)
+        # Menambahkan opsi "Semua Data"
+        filter_options = ["Semua Data"] + years
+        selected_option = st.selectbox("Pilih Periode:", filter_options)
         
-        filtered_df = df_display[df_display['year'] == selected_year]
+        if selected_option == "Semua Data":
+            filtered_df = df_display
+            display_period = "Semua Data"
+        else:
+            filtered_df = df_display[df_display['year'] == selected_option]
+            display_period = f"Tahun {selected_option}"
+
     else:
         st.warning("Kolom tanggal tidak ditemukan. Menampilkan data keseluruhan.")
         filtered_df = df_display
-        selected_year = "Keseluruhan"
+        display_period = "Keseluruhan"
 
 
     # --- METRICS ROW ---
-    st.subheader(f"Ringkasan Tahun {selected_year}")
+    st.subheader(f"Ringkasan Periode {display_period}")
     zakat_beras_col = "Jumlah Beras (Kg)"
     
     # Calculate metrics based on filtered data
@@ -189,7 +197,7 @@ if st.session_state.df is not None:
 
     # --- GRAFIK ROW ---
     if date_col_name:
-        st.subheader(f"Grafik Penerimaan Harian - Tahun {selected_year}")
+        st.subheader(f"Grafik Penerimaan Harian - {display_period}")
         graph_col1, graph_col2 = st.columns(2)
 
         with graph_col1:
