@@ -213,12 +213,21 @@ if st.session_state.df is not None:
             monthly_money = filtered_df.groupby('month_name', observed=False)[money_cols_list].sum().sum(axis=1).reset_index(name='total_uang')
             
             fig_money = px.bar(monthly_money, x='month_name', y='total_uang', title="Total Donasi Uang per Bulan")
+            fig_money.update_traces(
+                marker_color='#8884d8', 
+                marker_line_width=0,
+                hovertemplate='<b>%{x}</b><br>Rp %{y:,.0f}'
+            )
             fig_money.update_layout(
-                xaxis_title="Bulan", 
-                yaxis_title="Total Donasi (Rp)",
+                title_x=0.05,
+                xaxis_title=None, 
+                yaxis_title=None,
                 plot_bgcolor='white',
-                xaxis={'showgrid': False},
-                yaxis={'showgrid': True, 'gridwidth': 0.5, 'gridcolor': '#e0e0e0'}
+                paper_bgcolor='white',
+                xaxis=dict(showgrid=False, linecolor='white', showticklabels=True, ticks=''),
+                yaxis=dict(showgrid=True, gridwidth=1, gridcolor='#f0f0f0', showline=False, zeroline=False, showticklabels=False),
+                hoverlabel=dict(bgcolor="#333", font_size=14, font_family="Arial"),
+                bargap=0.4
             )
             st.plotly_chart(fig_money, use_container_width=True)
         
@@ -226,13 +235,22 @@ if st.session_state.df is not None:
             # Grup data beras per bulan
             if zakat_beras_col in filtered_df.columns:
                 monthly_rice = filtered_df.groupby('month_name', observed=False)[zakat_beras_col].sum().reset_index()
-                fig_rice = px.bar(monthly_rice, x='month_name', y=zakat_beras_col, title="Total Zakat Beras per Bulan", color_discrete_sequence=['#28a745'])
+                fig_rice = px.bar(monthly_rice, x='month_name', y=zakat_beras_col, title="Total Zakat Beras per Bulan")
+                fig_rice.update_traces(
+                    marker_color='#90ee90', # Light Green
+                    marker_line_width=0,
+                    hovertemplate='<b>%{x}</b><br>%{y:,.1f} Kg'
+                )
                 fig_rice.update_layout(
-                    xaxis_title="Bulan", 
-                    yaxis_title="Jumlah Beras (Kg)",
+                    title_x=0.05,
+                    xaxis_title=None, 
+                    yaxis_title=None,
                     plot_bgcolor='white',
-                    xaxis={'showgrid': False},
-                    yaxis={'showgrid': True, 'gridwidth': 0.5, 'gridcolor': '#e0e0e0'}
+                    paper_bgcolor='white',
+                    xaxis=dict(showgrid=False, linecolor='white', showticklabels=True, ticks=''),
+                    yaxis=dict(showgrid=True, gridwidth=1, gridcolor='#f0f0f0', showline=False, zeroline=False, showticklabels=False),
+                    hoverlabel=dict(bgcolor="#333", font_size=14, font_family="Arial"),
+                    bargap=0.4
                 )
                 st.plotly_chart(fig_rice, use_container_width=True)
             else:
