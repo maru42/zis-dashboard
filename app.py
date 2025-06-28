@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import plotly.express as px
+from datetime import datetime
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
@@ -9,12 +11,12 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- CUSTOM CSS (Diterapkan ke semua halaman) ---
+# --- CUSTOM CSS FOR LIGHT MODE ---
 st.markdown("""
 <style>
 /* General Body Styles */
 body {
-    background-color: #f0f2f6;
+    background-color: #f0f2f6; /* Light grey background */
 }
 
 /* Main container styling */
@@ -39,13 +41,31 @@ body {
 }
 
 /* Metric Card Styling */
-.metric-card { text-align: center; }
-.metric-card h3 { font-size: 1.2rem; color: #6c757d; margin-bottom: 0.5rem; }
-.metric-card p { font-size: 2.5rem; font-weight: 600; color: #1E293B; margin-bottom: 0.5rem; }
-.metric-card span { font-size: 1rem; color: #28a745; }
-.metric-card span.red { color: #dc3545; }
+.metric-card h3 {
+    font-size: 1.1rem;
+    color: #6c757d;
+    margin-bottom: 8px;
+    font-weight: 400;
+}
+.metric-card p {
+    font-size: 2.2rem;
+    font-weight: 600;
+    color: #1E293B;
+    margin-bottom: 8px;
+}
+.metric-card span {
+    font-size: 1rem;
+    color: #28a745;
+}
+.metric-card span.red {
+    color: #dc3545;
+}
 
-/* Button Styling */
+
+/* Header styling */
+h1, h2, h3, h4 { color: #1E293B; }
+
+/* Button styling */
 div.stButton > button {
     background-color: #0068c9;
     color: white;
@@ -53,12 +73,10 @@ div.stButton > button {
     padding: 10px 20px;
     border: none;
     font-weight: 500;
-    width: 100%;
 }
-div.stButton > button:hover { background-color: #0055a8; }
-
-/* Header styling */
-h1, h2, h3, h4 { color: #1E293B; }
+div.stButton > button:hover {
+    background-color: #0055a8;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -76,6 +94,7 @@ if 'model' not in st.session_state:
 
 # --- SIDEBAR FOR UPLOAD ---
 with st.sidebar:
+    st.image("https://www.annabawi.org/wp-content/uploads/2022/12/cropped-Logo-web-Lazis-An-Nabawi-300x125.png", width=200)
     st.title("⚙️ Upload Data Anda")
     uploaded_file = st.file_uploader("📤 Upload file Excel Rekapitulasi ZIS", type=["xlsx"])
     
@@ -86,39 +105,63 @@ with st.sidebar:
             st.session_state.scaled_data = None
             st.session_state.result_df = None
             st.session_state.model = None
-            st.success("File berhasil diunggah! Silakan mulai analisis dari halaman Preprocessing.")
+            st.success("File berhasil diunggah!")
 
 # --- HOMEPAGE CONTENT ---
-st.title("📊 Overview Dashboard ZIS")
-st.markdown("Selamat datang! Halaman ini menampilkan ringkasan data awal dari file yang Anda unggah.")
+st.title("Dashboard Overview ZIS")
+st.markdown("Ringkasan data penerimaan Zakat, Infaq, dan Shadaqah.")
+st.markdown("---")
 
 if st.session_state.df is not None:
-    
-    st.markdown("### Ringkasan Data ZIS")
-    
     df_display = st.session_state.df.copy()
     
-    # --- Calculate Metrics ---
+    # Mencari kolom tanggal yang mungkin (misal: 'tanggal', 'waktu', 'date')
+    date_col_name = None
+    possible_date_cols = ['tanggal', 'tgl', 'date', 'waktu_transaksi', 'waktu']
+    for col in df_display.columns:
+        if col.lower() in possible_date_cols:
+            date_col_name = col
+            break
+
+    # Filter Tahun (ditempatkan di atas untuk mengontrol semua elemen di bawahnya)
+    if date_col_name:
+        df_display['date'] = pd.to_datetime(df_display[date_col_name], errors='coerce')
+        df_display.dropna(subset=['date'], inplace=True) # Hapus baris yang tanggalnya tidak valid
+        df_display['year'] = df_display['date'].dt.year
+        
+        years = sorted(df_display['year'].dropna().unique().astype(int), reverse=True)
+        selected_year = st.selectbox("Pilih Tahun:", years)
+        
+        filtered_df = df_display[df_display['year'] == selected_year]
+    else:
+        st.warning("Kolom tanggal tidak ditemukan. Menampilkan data keseluruhan.")
+        filtered_df = df_display
+        selected_year = "Keseluruhan"
+
+
+    # --- METRICS ROW ---
+    st.subheader(f"Ringkasan Tahun {selected_year}")
     zakat_beras_col = "Jumlah Beras (Kg)"
     
-    # 1. Calculate total rice zakat
+    # Calculate metrics based on filtered data
     total_zakat_beras = 0
-    if zakat_beras_col in df_display.columns:
-        numeric_beras = pd.to_numeric(df_display[zakat_beras_col], errors='coerce')
+    if zakat_beras_col in filtered_df.columns:
+        numeric_beras = pd.to_numeric(filtered_df[zakat_beras_col], errors='coerce')
         total_zakat_beras = numeric_beras.sum()
 
-    # 2. Calculate total money donation (excluding rice column)
-    numeric_cols = df_display.select_dtypes(include=np.number)
-    if zakat_beras_col in numeric_cols.columns:
-        numeric_cols_money = numeric_cols.drop(columns=[zakat_beras_col])
-    else:
-        numeric_cols_money = numeric_cols
-    total_donasi_uang = numeric_cols_money.sum().sum()
-
-    # 3. Other metrics
-    jumlah_transaksi = len(df_display)
-    rata_donasi = numeric_cols_money.sum(axis=1).mean() if not numeric_cols_money.empty else 0
+    numeric_cols = filtered_df.select_dtypes(include=np.number)
     
+    # Daftar kolom yang bukan donasi uang untuk dikecualikan
+    cols_to_exclude = [zakat_beras_col, 'year']
+    if 'month' in filtered_df.columns:
+        cols_to_exclude.append('month')
+        
+    money_cols = numeric_cols.drop(columns=[col for col in cols_to_exclude if col in numeric_cols.columns])
+    total_donasi_uang = money_cols.sum().sum()
+    jumlah_transaksi = len(filtered_df)
+    rata_donasi = money_cols.sum(axis=1).mean() if not money_cols.empty else 0
+
+
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.markdown(f"""
@@ -141,9 +184,36 @@ if st.session_state.df is not None:
             <h3>Rata-Rata Donasi Uang</h3><p>Rp {rata_donasi:,.0f}</p><span>per Transaksi</span>
         </div>""", unsafe_allow_html=True)
 
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # --- GRAFIK ROW ---
+    if date_col_name:
+        st.subheader(f"Grafik Penerimaan Harian - Tahun {selected_year}")
+        graph_col1, graph_col2 = st.columns(2)
+
+        with graph_col1:
+            # Grup data uang per hari
+            money_cols_list = money_cols.columns.tolist()
+            daily_money = filtered_df.groupby('date')[money_cols_list].sum().sum(axis=1).reset_index(name='total_uang')
+            
+            fig_money = px.line(daily_money, x='date', y='total_uang', markers=False, title="Tren Donasi Uang Harian")
+            fig_money.update_layout(xaxis_title="Tanggal", yaxis_title="Total Donasi (Rp)")
+            st.plotly_chart(fig_money, use_container_width=True)
+        
+        with graph_col2:
+            # Grup data beras per hari
+            if zakat_beras_col in filtered_df.columns:
+                daily_rice = filtered_df.groupby('date')[zakat_beras_col].sum().reset_index()
+                fig_rice = px.line(daily_rice, x='date', y=zakat_beras_col, markers=False, title="Tren Zakat Beras Harian", color_discrete_sequence=['green'])
+                fig_rice.update_layout(xaxis_title="Tanggal", yaxis_title="Jumlah Beras (Kg)")
+                st.plotly_chart(fig_rice, use_container_width=True)
+            else:
+                st.info(f"Kolom '{zakat_beras_col}' tidak ditemukan untuk membuat grafik beras.")
+
     st.markdown("---")
-    st.subheader("Pratinjau Data Awal")
-    st.dataframe(st.session_state.df.head())
-    
+    st.subheader("Pratinjau Data (Sesuai Filter)")
+    st.dataframe(filtered_df.head())
+
 else:
     st.info("Silakan unggah file Excel di sidebar untuk memulai analisis.")
