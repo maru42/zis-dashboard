@@ -94,7 +94,8 @@ if 'model' not in st.session_state:
 
 # --- SIDEBAR FOR UPLOAD ---
 with st.sidebar:
-    st.title("Upload Data Anda")
+    st.image("https://www.annabawi.org/wp-content/uploads/2022/12/cropped-Logo-web-Lazis-An-Nabawi-300x125.png", width=200)
+    st.title("⚙️ Upload Data Anda")
     uploaded_file = st.file_uploader("📤 Upload file Excel Rekapitulasi ZIS", type=["xlsx"])
     
     if uploaded_file:
@@ -108,7 +109,7 @@ with st.sidebar:
 
 # --- HOMEPAGE CONTENT ---
 st.title("Dashboard Overview ZIS")
-st.markdown("Selamat datang! Halaman ini menampilkan ringkasan data awal dari file yang Anda unggah.")
+st.markdown("Ringkasan data penerimaan Zakat, Infaq, dan Shadaqah.")
 st.markdown("---")
 
 if st.session_state.df is not None:
@@ -196,24 +197,43 @@ if st.session_state.df is not None:
 
     # --- GRAFIK ROW ---
     if date_col_name:
-        st.subheader(f"Grafik Penerimaan Harian - {display_period}")
+        st.subheader(f"Grafik Penerimaan Bulanan - {display_period}")
+        
+        # Menambahkan kolom nama bulan untuk plotting
+        filtered_df['month_name'] = filtered_df['date'].dt.strftime('%b')
+        # Urutkan bulan dengan benar
+        month_order = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        filtered_df['month_name'] = pd.Categorical(filtered_df['month_name'], categories=month_order, ordered=True)
+        
         graph_col1, graph_col2 = st.columns(2)
 
         with graph_col1:
-            # Grup data uang per hari
+            # Grup data uang per bulan
             money_cols_list = money_cols.columns.tolist()
-            daily_money = filtered_df.groupby('date')[money_cols_list].sum().sum(axis=1).reset_index(name='total_uang')
+            monthly_money = filtered_df.groupby('month_name', observed=False)[money_cols_list].sum().sum(axis=1).reset_index(name='total_uang')
             
-            fig_money = px.line(daily_money, x='date', y='total_uang', markers=False, title="Tren Donasi Uang Harian")
-            fig_money.update_layout(xaxis_title="Tanggal", yaxis_title="Total Donasi (Rp)")
+            fig_money = px.bar(monthly_money, x='month_name', y='total_uang', title="Total Donasi Uang per Bulan")
+            fig_money.update_layout(
+                xaxis_title="Bulan", 
+                yaxis_title="Total Donasi (Rp)",
+                plot_bgcolor='white',
+                xaxis={'showgrid': False},
+                yaxis={'showgrid': True, 'gridwidth': 0.5, 'gridcolor': '#e0e0e0'}
+            )
             st.plotly_chart(fig_money, use_container_width=True)
         
         with graph_col2:
-            # Grup data beras per hari
+            # Grup data beras per bulan
             if zakat_beras_col in filtered_df.columns:
-                daily_rice = filtered_df.groupby('date')[zakat_beras_col].sum().reset_index()
-                fig_rice = px.line(daily_rice, x='date', y=zakat_beras_col, markers=False, title="Tren Zakat Beras Harian", color_discrete_sequence=['green'])
-                fig_rice.update_layout(xaxis_title="Tanggal", yaxis_title="Jumlah Beras (Kg)")
+                monthly_rice = filtered_df.groupby('month_name', observed=False)[zakat_beras_col].sum().reset_index()
+                fig_rice = px.bar(monthly_rice, x='month_name', y=zakat_beras_col, title="Total Zakat Beras per Bulan", color_discrete_sequence=['#28a745'])
+                fig_rice.update_layout(
+                    xaxis_title="Bulan", 
+                    yaxis_title="Jumlah Beras (Kg)",
+                    plot_bgcolor='white',
+                    xaxis={'showgrid': False},
+                    yaxis={'showgrid': True, 'gridwidth': 0.5, 'gridcolor': '#e0e0e0'}
+                )
                 st.plotly_chart(fig_rice, use_container_width=True)
             else:
                 st.info(f"Kolom '{zakat_beras_col}' tidak ditemukan untuk membuat grafik beras.")
