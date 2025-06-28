@@ -1,7 +1,3 @@
-# ==============================================================================
-# File: pages/3_Hasil_Analisis.py
-# Simpan kode ini sebagai 3_Hasil_Analisis.py di dalam folder 'pages'.
-# ==============================================================================
 import streamlit as st
 import pandas as pd
 from sklearn.decomposition import PCA
