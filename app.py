@@ -103,7 +103,6 @@ div.stButton > button:hover {
 """, unsafe_allow_html=True)
 
 # --- INITIALIZE SESSION STATE ---
-# ... (session state initialization remains the same) ...
 if 'df' not in st.session_state:
     st.session_state.df = None
 if 'df_processed' not in st.session_state:
@@ -136,7 +135,7 @@ st.markdown("<h3 style='color: #a0a0a0;'>Berikut ringkasan data awal Anda.</h3>"
 st.markdown("---")
 
 if st.session_state.df is not None:
-    main_col1, main_col2 = st.columns([2, 1])
+    main_col1, main_col2 = st.columns([2.5, 1])
 
     with main_col1:
         # --- METRICS ROW ---
@@ -183,10 +182,26 @@ if st.session_state.df is not None:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # --- DATA PREVIEW ---
-        st.markdown("<h4>Pratinjau Data Mentah</h4>", unsafe_allow_html=True)
-        with st.container():
-            st.dataframe(st.session_state.df.head(), use_container_width=True)
+        # --- DITAMBAHKAN: GRAFIK GARIS ---
+        st.markdown("<h4>Grafik Donasi Harian (Contoh)</h4>", unsafe_allow_html=True)
+        with st.container(border=False):
+            # Membuat data dummy untuk visualisasi
+            chart_data = pd.DataFrame({
+                "Tanggal": pd.to_datetime(pd.date_range("2024-06-01", periods=14, freq="D")),
+                "Donasi (Rp)": np.random.randint(1000000, 5000000, size=14)
+            })
+            
+            fig = px.line(chart_data, x='Tanggal', y='Donasi (Rp)', markers=True,
+                          title="Tren Penerimaan Donasi 14 Hari Terakhir")
+            fig.update_layout(
+                plot_bgcolor='#2b2b2b',
+                paper_bgcolor='#2b2b2b',
+                font_color='#e0e0e0',
+                xaxis_gridcolor='#444',
+                yaxis_gridcolor='#444'
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
 
     with main_col2:
         # --- TO-DO LIST ---
@@ -207,6 +222,13 @@ if st.session_state.df is not None:
             </div>
         </div>
         """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # --- DATA PREVIEW ---
+        st.markdown("<h4>Pratinjau Data</h4>", unsafe_allow_html=True)
+        with st.container(border=False):
+            st.dataframe(st.session_state.df.head(5), use_container_width=True)
 
 else:
     st.info("Silakan unggah file Excel di sidebar untuk memulai analisis.")
